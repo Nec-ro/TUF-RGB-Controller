@@ -4,3 +4,7 @@ __pycache__/
 *.egg-info/
 .DS_Store
 spotify_config.json
+
+build/
+dist/
+rgbgui.spec
