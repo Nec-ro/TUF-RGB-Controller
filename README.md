@@ -73,6 +73,22 @@ From the project folder, run:
 python rgbgui.py
 ```
 
+## Build Windows Executable
+
+If you want to build a standalone Windows executable, install PyInstaller first:
+
+```bash
+pip install pyinstaller
+```
+
+Then run:
+
+```bash
+python -m PyInstaller --noconfirm --onedir --windowed --icon="app_icon.ico" --exclude-module PyQt6 --exclude-module PyQt6.QtCore --exclude-module PyQt6.QtGui --exclude-module PyQt6.QtWidgets --add-data "modules;modules" --add-data "app_icon.ico;." "rgbgui.py"
+```
+
+This will create a packaged app in the `dist\rgbgui` folder.
+
 ## Project Structure
 
 ```text
