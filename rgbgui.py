@@ -239,6 +239,9 @@ class StaticPage(ModePage):
     def toggle_random(self, checked):
         self.color_input.setEnabled(not checked)
         self.pick_btn.setEnabled(not checked)
+        self.update()
+        if self.parentWidget():
+            self.parentWidget().adjustSize()
 
     def pick_color(self):
         color = QColorDialog.getColor()
@@ -305,9 +308,7 @@ class CyclePage(ModePage):
         self.mode_stack.addWidget(std_page)
         self.mode_stack.addWidget(custom_page)
 
-        self.mode_combo.currentIndexChanged.connect(
-            self.mode_stack.setCurrentIndex
-        )
+        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
 
         # --------------------
         # Common Settings
@@ -335,6 +336,14 @@ class CyclePage(ModePage):
         grid.addWidget(self.brightness, 3, 1)
 
         self.add_group(grp)
+
+        self.mode_combo.setCurrentIndex(0)
+
+    def _on_mode_changed(self, index: int) -> None:
+        self.mode_stack.setCurrentIndex(index)
+        self.update()
+        if self.parentWidget():
+            self.parentWidget().adjustSize()
 
     def pick_color1(self):
         from PySide6.QtWidgets import QColorDialog
@@ -419,6 +428,8 @@ class SystemMonitorPage(ModePage):
         custom_layout.addWidget(self.btn_pick_max)
         
         self.custom_color_widget.setVisible(False)
+        self.custom_palette_label = QLabel("Custom Palette")
+        self.custom_palette_label.setVisible(False)
         self.brightness = self._make_brightness_spin()
         
         self.interval_spin = QDoubleSpinBox()
@@ -452,7 +463,7 @@ class SystemMonitorPage(ModePage):
         grid.addWidget(QLabel("Color Profile"), 2, 0)
         grid.addWidget(self.color_mode_combo, 2, 1, 1, 2)
 
-        grid.addWidget(QLabel("Custom Palette"), 3, 0)
+        grid.addWidget(self.custom_palette_label, 3, 0)
         grid.addWidget(self.custom_color_widget, 3, 1, 1, 2)
 
         grid.addWidget(QLabel("Update Interval"), 4, 0)
@@ -494,7 +505,9 @@ class SystemMonitorPage(ModePage):
                 self.alert_threshold_spin.setValue(90) 
 
     def _toggle_custom_colors(self, index: int) -> None:
-        self.custom_color_widget.setVisible(index == 1)
+        is_custom = (index == 1)
+        self.custom_color_widget.setVisible(is_custom)
+        self.custom_palette_label.setVisible(is_custom)
 
     def _pick_color(self, line_edit: QLineEdit) -> None:
         color = QColorDialog.getColor()
@@ -530,16 +543,19 @@ class ReactivePage(ModePage):
 
         grp = QGroupBox("Reactive Settings")
         grid = QGridLayout(grp)
+        
         self.reactive_combo = QComboBox()
         self.reactive_combo.addItems([
             "Type Speed (CPS / WPM)",
             "Network Ping (Latency)"
         ])
         self.reactive_combo.currentIndexChanged.connect(self._on_mode_changed)
+        
         self.host_label = QLabel("Target Host:")
         self.host_input = QLineEdit("google.com")
         self.host_label.setVisible(False)
         self.host_input.setVisible(False)
+        
         self.min_spin = QSpinBox()
         self.min_spin.setRange(0, 1000)
         self.min_spin.setValue(0)
@@ -547,15 +563,17 @@ class ReactivePage(ModePage):
         self.max_spin = QSpinBox()
         self.max_spin.setRange(5, 5000)
         self.max_spin.setValue(15)
+        
         self.color_mode_combo = QComboBox()
         self.color_mode_combo.addItems(["Standard (Green to Red)", "Custom Gradient"])
         self.color_mode_combo.currentIndexChanged.connect(self._toggle_custom_colors)
+        
         self.custom_color_widget = QWidget()
         custom_layout = QHBoxLayout(self.custom_color_widget)
         custom_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.hex_min_color = self.create_hex_input("#00FF00")
-        self.hex_max_color = self.create_hex_input("#FF0000")
+        self.hex_min_color = self.create_hex_input("#11FF11")
+        self.hex_max_color = self.create_hex_input("#AA00EE")
         self.btn_pick_min = QPushButton("🎨")
         self.btn_pick_max = QPushButton("🎨")
 
@@ -569,11 +587,19 @@ class ReactivePage(ModePage):
         custom_layout.addWidget(self.hex_max_color)
         custom_layout.addWidget(self.btn_pick_max)
         self.custom_color_widget.setVisible(False)
+        self.custom_palette_label = QLabel("Custom Palette")
+        self.custom_palette_label.setVisible(False)
+        self.hold_checkbox = QCheckBox("Ignore Key Holding (Filter continuous presses)")
+        self.hold_checkbox.setChecked(True)
+        
         self.brightness = self._make_brightness_spin()
+        
+        self.interval_label = QLabel("Update Interval")
         self.interval_spin = QDoubleSpinBox()
         self.interval_spin.setRange(0.1, 10.0)
         self.interval_spin.setValue(2.0)
         self.interval_spin.setSuffix(" sec")
+        
         grid.addWidget(QLabel("Reactive Mode"), 0, 0)
         grid.addWidget(self.reactive_combo, 0, 1, 1, 2)
 
@@ -587,14 +613,16 @@ class ReactivePage(ModePage):
         grid.addWidget(QLabel("Color Profile"), 3, 0)
         grid.addWidget(self.color_mode_combo, 3, 1, 1, 2)
 
-        grid.addWidget(QLabel("Custom Palette"), 4, 0)
+        grid.addWidget(self.custom_palette_label, 4, 0)
         grid.addWidget(self.custom_color_widget, 4, 1, 1, 2)
 
-        grid.addWidget(QLabel("Update Interval"), 5, 0)
-        grid.addWidget(self.interval_spin, 5, 1, 1, 2)
+        grid.addWidget(QLabel("Brightness"), 5, 0)
+        grid.addWidget(self.brightness, 5, 1, 1, 2)
 
-        grid.addWidget(QLabel("Brightness"), 6, 0)
-        grid.addWidget(self.brightness, 6, 1, 1, 2)
+        grid.addWidget(self.hold_checkbox, 6, 0, 1, 3)
+
+        grid.addWidget(self.interval_label, 7, 0)
+        grid.addWidget(self.interval_spin, 7, 1, 1, 2)
 
         self.add_group(grp)
         self._on_mode_changed(0)
@@ -604,22 +632,26 @@ class ReactivePage(ModePage):
         is_ping = (index == 1)
         self.host_label.setVisible(is_ping)
         self.host_input.setVisible(is_ping)
+        
+        self.interval_label.setVisible(is_ping)
+        self.interval_spin.setVisible(is_ping)
+        self.hold_checkbox.setVisible(not is_ping)
 
         if is_ping:
             self.min_spin.setSuffix(" ms")
             self.max_spin.setSuffix(" ms")
             self.min_spin.setValue(30)
             self.max_spin.setValue(250)
-            self.interval_spin.setEnabled(True)
         else:
             self.min_spin.setSuffix(" CPS")
             self.max_spin.setSuffix(" CPS")
             self.min_spin.setValue(0)
             self.max_spin.setValue(12)
-            self.interval_spin.setEnabled(False)
 
     def _toggle_custom_colors(self, index: int) -> None:
-        self.custom_color_widget.setVisible(index == 1)
+        is_custom = (index == 1)
+        self.custom_color_widget.setVisible(is_custom)
+        self.custom_palette_label.setVisible(is_custom)
 
     def _pick_color(self, line_edit: QLineEdit) -> None:
         color = QColorDialog.getColor()
@@ -636,7 +668,8 @@ class ReactivePage(ModePage):
             "min_color": self.hex_min_color.text().strip().upper(),
             "max_color": self.hex_max_color.text().strip().upper(),
             "interval": self.interval_spin.value(),
-            "brightness": self.brightness.value()
+            "brightness": self.brightness.value(),
+            "ignore_hold": self.hold_checkbox.isChecked()
         }
 
 class ScreenSyncPage(ModePage):
@@ -682,6 +715,9 @@ class ScreenSyncPage(ModePage):
             self.interval_spin.setValue(0.3)
         else:             # Average Color
             self.interval_spin.setValue(0.1)
+        self.update()
+        if self.parentWidget():
+            self.parentWidget().adjustSize()
 
     def get_config(self) -> dict[str, Any]:
         method_map = {
@@ -771,9 +807,15 @@ class TimeFocusPage(ModePage):
 
     def _on_submode_changed(self, index: int) -> None:
         self.timer_widget.setVisible(index == 1)
+        self.update()
+        if self.parentWidget():
+            self.parentWidget().adjustSize()
 
     def _toggle_break_section(self, checked: bool) -> None:
         self.break_widget.setVisible(checked)
+        self.update()
+        if self.parentWidget():
+            self.parentWidget().adjustSize()
 
     def _pick_color(self, line_edit: QLineEdit) -> None:
         color = QColorDialog.getColor()
@@ -985,7 +1027,6 @@ class MainWindow(QMainWindow):
             self.pages.setCurrentIndex(index)
 
     def _show_logs_popup(self):
-        """باز کردن پنجره پاپ‌آپ لاگ‌ها به صورت غیر مودال (Non-blocking)"""
         self.log_window.show()
         self.log_window.raise_()
         self.log_window.activateWindow()

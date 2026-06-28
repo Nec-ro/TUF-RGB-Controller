@@ -43,7 +43,6 @@ def get_mapped_color(ratio: float, config: dict) -> RGBColor:
             return interpolate_color(STANDARD_COLORS[i], STANDARD_COLORS[i+1], t)
 
 def get_ping_latency(host: str) -> float:
-    """ارسال یک پینگ تکی و استخراج زمان تاخیر بر اساس سیستم‌عامل"""
     is_win = platform.system() == "Windows"
     cmd = ["ping", "-n" if is_win else "-c", "1", host]
     try:
@@ -100,14 +99,24 @@ def run_reactive_mode(config: dict) -> None:
             return
 
         timestamps = deque()
+        pressed_keys = set()
+        ignore_hold = config.get("ignore_hold", True)
 
         def on_press(key):
+            if ignore_hold:
+                if key in pressed_keys:
+                    return
+                pressed_keys.add(key)
             timestamps.append(time.time())
 
+        def on_release(key):
+            if ignore_hold and key in pressed_keys:
+                pressed_keys.remove(key)
+
         try:
-            listener = keyboard.Listener(on_press=on_press)
+            listener = keyboard.Listener(on_press=on_press, on_release=on_release)
             listener.start()
-            print("⌨️ Type Speed Monitor active! Start typing...")
+            print("⌨️ Type Speed Monitor active (Hold filter integrated)! Start typing...")
         except Exception as e:
             print(f"❌ Failed to start Keyboard Listener: {e}")
             print("💡 Tip: Try running the application as Administrator.")
